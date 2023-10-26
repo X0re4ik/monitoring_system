@@ -23,7 +23,7 @@ void sendDataAboutState() {
 ThreadController thread_controller = ThreadController();
 
 
-Thread* thread1 = new DeviceHTTPClientThread(&wifiOptions, &monitoringSystemServer);
+Thread* thread1 = new MachineСonditionSendThread(&wifiOptions, &monitoringSystemServer);
 Thread* thread2 = new Thread(sendDataAboutState, 1000);
 
 
