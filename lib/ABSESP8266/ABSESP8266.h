@@ -5,6 +5,8 @@
 
 #include <ESP8266WiFi.h>
 #include "options.h"
+#include <WiFiManager.h>
+#include <ezTime.h>
 
 namespace esp8266 {
     
@@ -75,19 +77,7 @@ public:
         machine_condition->spindle_speed = 1;
         machine_condition->temperature = 1;
         machine_condition->vibration = 1;
-        machine_condition->dispatch_time = new Timezone();
-    }
-
-    static void updateMachinePerformance(MachinePerformance* machine_performance) {
-        int start_work_button = _digitalRead(DevicePins::START_WORK);
-        int end_work_button = _digitalRead(DevicePins::END_WORK);
-
-        if (start_work_button == HIGH) {
-            machine_performance->time_start_work = new Timezone();
-        }
-        else if (end_work_button == HIGH) {
-            machine_performance->time_end_work = new Timezone();
-        }
+        machine_condition->dispatch_time = UTC.dateTime(ISO8601);
     }
 
     static void updateQtyDetails(QtyDetails* qty_details) {
@@ -100,7 +90,29 @@ public:
         else if (decrease_qty_good_details_button == HIGH) {
             qty_details->qty_bad_details++;
         }
-        qty_details->dispatch_time = new Timezone();
+        qty_details->dispatch_time = UTC.dateTime(ISO8601);
+    }
+
+
+    static void activateAccessPoint(WiFiOptions* settings) {
+        Serial.println("Активирую точку доступа");
+        WiFiManager wifiManager;
+        //wifiManager.resetSettings();
+        wifiManager.autoConnect("AutoConnectAP");
+        
+
+        String name = wifiManager.getWiFiSSID(false);
+        String pass = wifiManager.getWiFiPass(false);
+        settings->name = name;
+        settings->password = pass;
+    }
+
+    static void waitConnectToWiFi() {
+        Serial.println("Не могу соединиться с WiFi");
+        AbstractDevice::activateAccessPoint(&wifiOptions);
+        WiFi.begin(wifiOptions.name, wifiOptions.password);
+        Serial.println("Wi-Fi: " + wifiOptions.name + " [" + wifiOptions.password +"]");
+        Serial.println("Соединение успешно завершено");
     }
 
 private:
