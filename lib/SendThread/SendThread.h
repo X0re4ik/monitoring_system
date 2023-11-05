@@ -24,6 +24,8 @@ protected:
     DeviceOption* _device_option;
     Device* _device = Device::getInstance();
 
+    String _name;
+
 protected:
     esp8266::StatusMode updateState(bool result_request) {
         if (result_request) {
@@ -43,9 +45,10 @@ protected:
     }
 
 public:
-    SendThread(DeviceOption* device_option) : Thread(), _device_option(device_option) {
-            this->setInterval(1000);
-        }
+    SendThread(DeviceOption* device_option,
+                unsigned long interval = 2000, 
+                const String& name = "Отправитель") 
+        : Thread(nullptr, interval), _device_option(device_option), _name(name) {}
 
 public:
     void run() override {
@@ -55,20 +58,21 @@ public:
 
 public:
     String getPayload() {
-        StaticJsonDocument<200> doc;
-        const auto& id = this->_device->getID();
-        doc["ID"] = id;
-        doc["data"] = this->_device_option->toJson();
+        DynamicJsonDocument doc(500);
+        const auto& device_id = this->_device->getID();
+        doc["device"] = device_id;
+        this->_device_option->toJson(&doc);
         String result;
         serializeJson(doc, result);
         return result;
     }
 
     void callback_() {
-        if (true /*|| _device_option->readyToSend()*/) {
+        Serial.println(_device_option->isValid());
+        if (_device_option->isValid() || true) {
             const String& payload = this->getPayload();
             Serial.println(payload);
-            auto is_success = this->sendData(monitoringSystemServer.getURL(), payload);
+            auto is_success = this->sendData(_device_option->getURL(), payload);
             this->updateState(is_success);
         }
         
@@ -93,10 +97,25 @@ public:
     }
 };
 
-class MachineСonditionSendThread : public SendThread {
+class MachineConditionSendThread : public SendThread {
 
 public:
-    MachineСonditionSendThread(MachineCondition* mss_option) : SendThread(mss_option) {}
+    MachineConditionSendThread() 
+        : SendThread(&machineCondition, 3000, "MachineCondition") {}
+};
+
+class QtyDetailsSendThread : public SendThread {
+
+public:
+    QtyDetailsSendThread() 
+        : SendThread(&qtyDetails, 10000, "QtyDetails") {}
+};
+
+class TimeWorkSendThread : public SendThread {
+
+public:
+    TimeWorkSendThread() 
+        : SendThread(&timeWork, 20000, "TimeWork") {}
 };
 
 #endif
