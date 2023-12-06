@@ -8,28 +8,40 @@
 #include <WiFiManager.h>
 #include <ezTime.h>
 
+#include "DHT.h"
+#include <SimpleDHT.h>
+#include <Button.h>
+
+
+
 namespace esp8266 {
     
 enum StatusMode {
-    IN_WORK = 0,
-    WAIT_CONNECT = 1,
-    ERROR = 2
+    IN_WORK = 6,
+    WAIT_CONNECT = 5,
+    ERROR = 4
 };
 
 enum DevicePins {
-    START_WORK = 1,
-    END_WORK = 2,
-    INCREASE_QTY_GOOD_DETAILS = 3,
-    DECREASE_QTY_GOOD_DETAILS = 4,
+    START_WORK = 12,
+    END_WORK = 14,
+    INCREASE_QTY_GOOD_DETAILS = 15,
+    INCREASE_QTY_BAD_DETAILS = 13,
     TEMPERATURE = 0,
     VIBRATION = 1,
     SPINDLE_SPEED = 2
 };
 
 
-int _digitalRead(const DevicePins& pin) {
-    return 1; //digitalRead(pin);
-}
+
+
+
+Button increase_qty_good_details_button = Button(DevicePins::INCREASE_QTY_GOOD_DETAILS);
+Button increase_qty_bad_details_button = Button(DevicePins::INCREASE_QTY_BAD_DETAILS);
+
+Button start_work_button = Button(DevicePins::START_WORK);
+Button end_work_button = Button(DevicePins::END_WORK);
+
 
 
 
@@ -74,10 +86,14 @@ private:
         this->_connected_to_wifi = false;
         this->_status_mode = StatusMode::WAIT_CONNECT;
 
-        // pinMode(DevicePins::START_WORK, OUTPUT);
-        // pinMode(DevicePins::END_WORK, OUTPUT);
-        // pinMode(DevicePins::INCREASE_QTY_GOOD_DETAILS, OUTPUT);
-        // pinMode(DevicePins::DECREASE_QTY_GOOD_DETAILS, OUTPUT);
+        pinMode(StatusMode::IN_WORK, OUTPUT);
+        pinMode(StatusMode::ERROR, OUTPUT);
+        pinMode(StatusMode::WAIT_CONNECT, OUTPUT);
+        
+        pinMode(DevicePins::START_WORK, INPUT);
+        pinMode(DevicePins::END_WORK, INPUT);
+        pinMode(DevicePins::INCREASE_QTY_GOOD_DETAILS, INPUT);
+        pinMode(DevicePins::INCREASE_QTY_BAD_DETAILS, INPUT);
         pinMode(DevicePins::TEMPERATURE, INPUT);
         pinMode(DevicePins::VIBRATION, INPUT);
         pinMode(DevicePins::SPINDLE_SPEED, INPUT);
@@ -86,34 +102,25 @@ private:
 
 public:
 
-    static void updateMachineCondition(MachineCondition* machine_condition) {
-        machine_condition->spindle_speed = digitalRead(DevicePins::SPINDLE_SPEED);
-        machine_condition->temperature = digitalRead(DevicePins::TEMPERATURE);
-        machine_condition->vibration = digitalRead(DevicePins::VIBRATION);
+    static void updateMachineCondition(MachineCondition* machine_condition, DHT* dht) {
+        machine_condition->temperature = random(20, 30);//dht->readTemperature();
+        machine_condition->humidity = random(94, 110);//dht->readHumidity();
+        machine_condition->pressure = random(15, 33);
         machine_condition->dispatch_time = UTC.dateTime(ISO8601);
     }
 
     static void updateQtyDetails(QtyDetails* qty_details) {
-        int increase_qty_good_details_button = _digitalRead(DevicePins::INCREASE_QTY_GOOD_DETAILS);
-        int decrease_qty_good_details_button = _digitalRead(DevicePins::DECREASE_QTY_GOOD_DETAILS);
+        qty_details->qty_good_details += increase_qty_good_details_button.read();
+        qty_details->qty_bad_details += increase_qty_bad_details_button.read();
 
-        if (increase_qty_good_details_button == HIGH) {
-            qty_details->qty_good_details += 1;
-        }
-        if (decrease_qty_good_details_button == HIGH) {
-            qty_details->qty_bad_details += 1;
-        }
         qty_details->dispatch_time = UTC.dateTime(ISO8601);
     }
 
     static void updateTimeWork(TimeWork* time_work) {
-        int start_work = _digitalRead(DevicePins::START_WORK);
-        int end_work = _digitalRead(DevicePins::END_WORK);
-
-        if (start_work == HIGH) {
+        if (start_work_button.read()) {
             time_work->start = UTC.dateTime(ISO8601);
         }
-        if (end_work == HIGH) {
+        if (end_work_button.read()) {
             time_work->end = UTC.dateTime(ISO8601);
         }
     }
@@ -137,7 +144,7 @@ public:
         AbstractDevice::activateAccessPoint(&wifiOptions);
         WiFi.begin(wifiOptions.name, wifiOptions.password);
         Serial.println("Wi-Fi: " + wifiOptions.name + " [" + wifiOptions.password +"]");
-        Serial.println("Соединение успешно завершено");
+        Serial.println("Соединение успешно завершено. Я готов передавать данные на сервер.");
     }
 
 private:

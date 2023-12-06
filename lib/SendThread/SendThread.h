@@ -48,7 +48,9 @@ public:
     SendThread(DeviceOption* device_option,
                 unsigned long interval = 2000, 
                 const String& name = "Отправитель") 
-        : Thread(nullptr, interval), _device_option(device_option), _name(name) {}
+        : Thread(nullptr, interval), _device_option(device_option), _name(name) {
+            this->setInterval(interval);
+        }
 
 public:
     void run() override {
@@ -68,14 +70,13 @@ public:
     }
 
     void callback_() {
-        Serial.println(_device_option->isValid());
-        if (_device_option->isValid() || true) {
+        if (_device_option->isValid()) {
             const String& payload = this->getPayload();
             Serial.println(payload);
             auto is_success = this->sendData(_device_option->getURL(), payload);
             this->updateState(is_success);
+            _device_option->reset();
         }
-        
     }
 
     bool sendData(const String& server_name, const String& payload) {
@@ -89,8 +90,8 @@ public:
 
             int http_response_code = http.POST(payload);
             http.end();
-
-            return http_response_code == 200;
+            bool is_success = http_response_code == HTTP_CODE_CREATED;
+            return is_success;
         }
         Serial.println("Не могу подключится к Wi-Fi сети");
         return false;
@@ -101,21 +102,21 @@ class MachineConditionSendThread : public SendThread {
 
 public:
     MachineConditionSendThread() 
-        : SendThread(&machineCondition, 3000, "MachineCondition") {}
+        : SendThread(&machineCondition, 2000, "MachineCondition") {}
 };
 
 class QtyDetailsSendThread : public SendThread {
 
 public:
     QtyDetailsSendThread() 
-        : SendThread(&qtyDetails, 10000, "QtyDetails") {}
+        : SendThread(&qtyDetails, 6000, "QtyDetails") {}
 };
 
 class TimeWorkSendThread : public SendThread {
 
 public:
     TimeWorkSendThread() 
-        : SendThread(&timeWork, 20000, "TimeWork") {}
+        : SendThread(&timeWork, 10000, "TimeWork") {}
 };
 
 #endif

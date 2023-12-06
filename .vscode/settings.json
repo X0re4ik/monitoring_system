@@ -3,6 +3,9 @@
         "*.py": "python",
         "*.tcc": "cpp",
         "algorithm": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "random": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp"
     }
 }

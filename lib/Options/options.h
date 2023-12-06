@@ -6,8 +6,8 @@
 
 static struct MonitoringSystemServer {
 
-    String origin = "http://192.168.0.113:8000/api/v1/device/";
-
+    String origin = "http://192.168.0.113:80/api/v1/device/";
+    //http://94.250.252.103:80/api/v1/device/
     String getURL() {
         return  this->origin;
     }
@@ -44,14 +44,14 @@ struct DeviceOption {
 static struct MachineCondition : public DeviceOption {
 
     float temperature = 0;
-    float vibration = 0;
-    float spindle_speed = 0;
+    float humidity = 0;
+    float pressure = 0;
     String dispatch_time = "";
 
     void toJson(JsonObject* json) override {
         (*json)["temperature"] = this->temperature;
-        (*json)["pressure"] = this->vibration;
-        (*json)["humidity"] = this->spindle_speed;
+        (*json)["humidity"] = this->humidity;
+        (*json)["pressure"] = this->pressure;
     }
 
     void toJson(DynamicJsonDocument* doc) {
@@ -66,8 +66,8 @@ static struct MachineCondition : public DeviceOption {
 
     void reset() override {
         this->temperature = 0;
-        this->vibration = 0;
-        this->spindle_speed = 0;
+        this->humidity = 0;
+        this->pressure = 0;
         this->dispatch_time = "";
     }
 
@@ -84,14 +84,14 @@ static struct QtyDetails : public DeviceOption {
 
 
     void toJson(JsonObject* json) override {
-        (*json)["qty_good_details"] = this->qty_good_details;
-        (*json)["qty_bad_details"] = this->qty_bad_details;
+        (*json)["qty_good_details"] = this->qty_good_details > 0 ? (1) : (0);
+        (*json)["qty_bad_details"] = this->qty_bad_details > 0 ? (1) : (0);
         (*json)["dispatch_time"] = this->dispatch_time;
     }
 
     void toJson(DynamicJsonDocument* doc) {
-        (*doc)["qty_good_details"] = this->qty_good_details;
-        (*doc)["qty_bad_details"] = this->qty_bad_details;
+        (*doc)["qty_good_details"] = this->qty_good_details > 0 ? (1) : (0);
+        (*doc)["qty_bad_details"] = this->qty_bad_details > 0 ? (1) : (0);
         (*doc)["dispatch_time"] = this->dispatch_time;
     }
 
